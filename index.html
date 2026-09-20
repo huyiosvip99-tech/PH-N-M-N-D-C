@@ -1,0 +1,2852 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>AI KHẢI TƯỜNG — OCR & Đọc văn bản</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<!-- OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+:root{
+  --bg:#050816;
+  --card:rgba(15,23,42,.72);
+  --line:rgba(255,255,255,.10);
+  --text:#f8fafc;
+  --muted:#94a3b8;
+
+  --blue:#5b8cff;
+  --cyan:#22d3ee;
+  --purple:#8b5cf6;
+
+  --green:#22c55e;
+  --red:#ef4444;
+
+  --shadow:0 25px 80px rgba(0,0,0,.45);
+}
+
+body{
+  min-height:100vh;
+  font-family:Inter,Arial,sans-serif;
+  color:var(--text);
+
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(91,140,255,.25),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(139,92,246,.20),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(34,211,238,.13),
+      transparent 35%
+    ),
+    var(--bg);
+
+  overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+
+  background:
+    linear-gradient(
+      rgba(255,255,255,.018) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,.018) 1px,
+      transparent 1px
+    );
+
+  background-size:40px 40px;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      black,
+      transparent
+    );
+}
+
+.app{
+  width:min(1050px,94%);
+  margin:0 auto;
+  padding:35px 0 60px;
+}
+
+/* HEADER */
+
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:25px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.logo{
+  width:54px;
+  height:54px;
+  border-radius:17px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:23px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--blue),
+      var(--purple)
+    );
+
+  box-shadow:
+    0 0 30px rgba(91,140,255,.4),
+    inset 0 1px rgba(255,255,255,.4);
+}
+
+.brand h1{
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:-.04em;
+}
+
+.brand p{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:4px;
+}
+
+.hdr-badge{
+  padding:8px 12px;
+
+  border:
+    1px solid
+    rgba(34,211,238,.25);
+
+  background:
+    rgba(34,211,238,.07);
+
+  border-radius:999px;
+
+  color:#67e8f9;
+  font-size:11px;
+  font-weight:700;
+}
+
+/* CARD */
+
+.card{
+  position:relative;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(15,23,42,.86),
+      rgba(15,23,42,.58)
+    );
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:24px;
+  padding:22px;
+
+  box-shadow:var(--shadow);
+
+  backdrop-filter:blur(25px);
+  -webkit-backdrop-filter:blur(25px);
+
+  margin-bottom:16px;
+}
+
+.card::before{
+  content:"";
+
+  position:absolute;
+
+  top:0;
+  left:12%;
+
+  width:76%;
+  height:1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.35),
+      transparent
+    );
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  margin-bottom:15px;
+}
+
+.section-title h2{
+  font-size:15px;
+  font-weight:700;
+}
+
+.section-title span{
+  color:var(--muted);
+  font-size:11px;
+}
+
+/* UPLOAD */
+
+.upload{
+  min-height:270px;
+
+  border:
+    1px dashed
+    rgba(91,140,255,.45);
+
+  border-radius:20px;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(91,140,255,.12),
+      transparent 65%
+    ),
+    rgba(2,6,23,.45);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+
+  cursor:pointer;
+  overflow:hidden;
+
+  transition:.25s;
+}
+
+.upload:hover,
+.upload.drag{
+  border-color:var(--cyan);
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(34,211,238,.16),
+      transparent 65%
+    ),
+    rgba(2,6,23,.55);
+
+  transform:translateY(-2px);
+}
+
+.upload-content{
+  padding:25px;
+}
+
+.camera{
+  width:76px;
+  height:76px;
+
+  border-radius:25px;
+
+  margin:0 auto 15px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:29px;
+  color:white;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--blue),
+      var(--purple)
+    );
+
+  box-shadow:
+    0 15px 45px
+    rgba(91,140,255,.35);
+}
+
+.upload h3{
+  font-size:17px;
+  margin-bottom:7px;
+}
+
+.upload p{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.upload strong{
+  color:#93c5fd;
+}
+
+#file{
+  display:none;
+}
+
+/* PREVIEW */
+
+.preview{
+  display:none;
+
+  position:relative;
+
+  width:100%;
+  min-height:270px;
+
+  border-radius:20px;
+
+  overflow:hidden;
+
+  background:#020617;
+}
+
+.preview img{
+  width:100%;
+  height:340px;
+
+  object-fit:contain;
+
+  display:block;
+}
+
+.preview-tools{
+  position:absolute;
+
+  right:12px;
+  top:12px;
+
+  display:flex;
+  gap:7px;
+}
+
+.icon-btn{
+  width:40px;
+  height:40px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.15);
+
+  border-radius:12px;
+
+  background:
+    rgba(2,6,23,.7);
+
+  color:white;
+
+  cursor:pointer;
+
+  backdrop-filter:blur(10px);
+}
+
+.icon-btn:hover{
+  background:
+    rgba(91,140,255,.7);
+}
+
+/* OCR BUTTON */
+
+.ocr-btn{
+  width:100%;
+  height:50px;
+
+  margin-top:14px;
+
+  border:0;
+  border-radius:15px;
+
+  cursor:pointer;
+
+  color:white;
+
+  font-size:14px;
+  font-weight:700;
+
+  background:
+    linear-gradient(
+      135deg,
+      #4f7cff,
+      #7c4dff
+    );
+
+  box-shadow:
+    0 12px 35px
+    rgba(79,124,255,.25);
+
+  transition:.2s;
+}
+
+.ocr-btn:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 15px 45px
+    rgba(79,124,255,.4);
+}
+
+.ocr-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+/* PROGRESS */
+
+.progress{
+  display:none;
+  margin-top:14px;
+}
+
+.progress-info{
+  display:flex;
+  justify-content:space-between;
+
+  font-size:11px;
+  color:var(--muted);
+
+  margin-bottom:7px;
+}
+
+.progress-bg{
+  height:6px;
+
+  border-radius:99px;
+  overflow:hidden;
+
+  background:
+    rgba(255,255,255,.07);
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+
+  border-radius:99px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--blue),
+      var(--cyan)
+    );
+
+  transition:.2s;
+}
+
+/* TEXT */
+
+textarea{
+  width:100%;
+  min-height:210px;
+
+  resize:vertical;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:17px;
+
+  padding:16px;
+
+  outline:none;
+
+  background:
+    rgba(2,6,23,.55);
+
+  color:var(--text);
+
+  font-family:inherit;
+
+  font-size:14px;
+  line-height:1.7;
+
+  transition:.2s;
+}
+
+textarea:focus{
+  border-color:
+    rgba(91,140,255,.7);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(91,140,255,.08);
+}
+
+.text-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  margin-top:8px;
+}
+
+.counter{
+  color:var(--muted);
+  font-size:11px;
+}
+
+.clear{
+  border:0;
+  background:none;
+
+  color:#94a3b8;
+
+  cursor:pointer;
+  font-size:11px;
+}
+
+.clear:hover{
+  color:#f87171;
+}
+
+/* VOICE */
+
+.voice-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(2,1fr);
+
+  gap:10px;
+}
+
+.voice{
+  padding:13px;
+
+  border:
+    1px solid
+    var(--line);
+
+  background:
+    rgba(2,6,23,.35);
+
+  border-radius:15px;
+
+  cursor:pointer;
+
+  transition:.2s;
+}
+
+.voice:hover{
+  border-color:
+    rgba(91,140,255,.5);
+}
+
+.voice.active{
+  border-color:
+    var(--blue);
+
+  background:
+    rgba(91,140,255,.10);
+
+  box-shadow:
+    0 0 25px
+    rgba(91,140,255,.08);
+}
+
+.voice-top{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.avatar{
+  width:45px;
+  height:45px;
+
+  border-radius:14px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--blue),
+      var(--purple)
+    );
+
+  font-size:15px;
+  font-weight:800;
+
+  box-shadow:
+    0 5px 20px
+    rgba(91,140,255,.25);
+}
+
+.voice-name{
+  font-size:13px;
+  font-weight:800;
+}
+
+.voice-lang{
+  color:var(--muted);
+  font-size:10px;
+  margin-top:3px;
+}
+
+/* SETTINGS */
+
+.settings{
+  display:grid;
+  gap:15px;
+}
+
+.setting{
+  display:grid;
+
+  grid-template-columns:
+    100px 1fr 45px;
+
+  gap:12px;
+
+  align-items:center;
+}
+
+.setting label{
+  color:#cbd5e1;
+  font-size:12px;
+}
+
+.setting input{
+  width:100%;
+  accent-color:var(--blue);
+}
+
+.value{
+  color:#8fb1ff;
+
+  text-align:right;
+
+  font-size:11px;
+  font-weight:700;
+}
+
+/* WAVE */
+
+.wave{
+  height:45px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  gap:4px;
+
+  margin-bottom:15px;
+}
+
+.bar{
+  width:4px;
+  height:5px;
+
+  border-radius:10px;
+
+  background:
+    linear-gradient(
+      to top,
+      var(--blue),
+      var(--cyan)
+    );
+
+  opacity:.35;
+}
+
+.wave.playing .bar{
+  animation:
+    wave .7s
+    ease-in-out
+    infinite
+    alternate;
+}
+
+.bar:nth-child(2){
+  animation-delay:.1s;
+}
+
+.bar:nth-child(3){
+  animation-delay:.2s;
+}
+
+.bar:nth-child(4){
+  animation-delay:.3s;
+}
+
+.bar:nth-child(5){
+  animation-delay:.15s;
+}
+
+.bar:nth-child(6){
+  animation-delay:.35s;
+}
+
+.bar:nth-child(7){
+  animation-delay:.2s;
+}
+
+.bar:nth-child(8){
+  animation-delay:.4s;
+}
+
+.bar:nth-child(9){
+  animation-delay:.1s;
+}
+
+.bar:nth-child(10){
+  animation-delay:.3s;
+}
+
+@keyframes wave{
+  from{
+    height:5px;
+  }
+
+  to{
+    height:32px;
+  }
+}
+
+/* BUTTONS */
+
+.actions{
+  display:grid;
+
+  grid-template-columns:
+    1fr 50px 50px;
+
+  gap:9px;
+}
+
+.btn{
+  height:48px;
+
+  border-radius:14px;
+
+  border:
+    1px solid
+    var(--line);
+
+  background:
+    rgba(255,255,255,.04);
+
+  color:white;
+
+  cursor:pointer;
+
+  font-family:inherit;
+
+  font-weight:700;
+
+  transition:.2s;
+}
+
+.btn-main{
+  border:0;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--blue),
+      var(--purple)
+    );
+
+  box-shadow:
+    0 12px 35px
+    rgba(91,140,255,.25);
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+/* STATUS */
+
+.status{
+  margin-top:11px;
+
+  display:flex;
+  align-items:center;
+
+  gap:7px;
+
+  color:var(--muted);
+
+  font-size:11px;
+}
+
+.dot{
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  background:#64748b;
+}
+
+.dot.playing{
+  background:#22c55e;
+
+  box-shadow:
+    0 0 12px
+    #22c55e;
+}
+
+/* FOOTER */
+
+.footer{
+  text-align:center;
+
+  color:#64748b;
+
+  font-size:10px;
+
+  padding-top:5px;
+}
+
+/* MOBILE */
+
+@media(max-width:650px){
+
+  .app{
+    width:94%;
+    padding-top:20px;
+  }
+
+  .hdr-badge{
+    display:none;
+  }
+
+  .card{
+    padding:17px;
+    border-radius:20px;
+  }
+
+  .voice-grid{
+    grid-template-columns:1fr;
+  }
+
+  .setting{
+    grid-template-columns:
+      82px 1fr 40px;
+  }
+
+  .preview img{
+    height:270px;
+  }
+
+  .brand h1{
+    font-size:19px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- HEADER -->
+
+<header class="header">
+
+  <div class="brand">
+
+    <div class="logo">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+    </div>
+
+    <div>
+
+      <h1>AI KHẢI TƯỜNG</h1>
+
+      <p>
+        Trợ lý đọc văn bản thông minh
+      </p>
+
+    </div>
+
+  </div>
+
+  <div class="hdr-badge">
+
+    <i class="fa-solid fa-bolt"></i>
+
+    AI OCR 4K
+
+  </div>
+
+</header>
+
+
+<!-- CAMERA / OCR -->
+
+<section class="card">
+
+  <div class="section-title">
+
+    <h2>
+      <i class="fa-solid fa-camera"></i>
+      Chụp ảnh nhận diện văn bản
+    </h2>
+
+    <span>
+      Tiếng Việt
+    </span>
+
+  </div>
+
+
+  <label
+    class="upload"
+    id="upload"
+  >
+
+    <input
+      type="file"
+      id="file"
+      accept="image/*"
+    >
+
+    <div class="upload-content">
+
+      <div class="camera">
+
+        <i class="fa-solid fa-camera-retro"></i>
+
+      </div>
+
+      <h3>
+        Chụp hoặc tải ảnh lên
+      </h3>
+
+      <p>
+
+        Chạm để mở camera hoặc chọn ảnh
+
+        <br>
+
+        <strong>
+          Kéo & thả ảnh
+        </strong>
+
+        vào khu vực này
+
+      </p>
+
+    </div>
+
+  </label>
+
+
+  <div
+    class="preview"
+    id="preview"
+  >
+
+    <img
+      id="previewImg"
+      alt="Ảnh văn bản"
+    >
+
+    <div class="preview-tools">
+
+      <button
+        class="icon-btn"
+        onclick="changeImage()"
+        title="Đổi ảnh"
+      >
+
+        <i class="fa-solid fa-image"></i>
+
+      </button>
+
+
+      <button
+        class="icon-btn"
+        onclick="removeImage()"
+        title="Xóa ảnh"
+      >
+
+        <i class="fa-solid fa-trash"></i>
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <button
+    class="ocr-btn"
+    id="ocrBtn"
+    onclick="runOCR()"
+    disabled
+  >
+
+    <i class="fa-solid fa-wand-magic-sparkles"></i>
+
+    Nhận diện văn bản bằng AI
+
+  </button>
+
+
+  <div
+    class="progress"
+    id="progress"
+  >
+
+    <div class="progress-info">
+
+      <span id="progressText">
+        Đang chuẩn bị...
+      </span>
+
+      <span id="progressPercent">
+        0%
+      </span>
+
+    </div>
+
+
+    <div class="progress-bg">
+
+      <div
+        class="progress-bar"
+        id="progressBar"
+      ></div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- TEXT -->
+
+<section class="card">
+
+  <div class="section-title">
+
+    <h2>
+
+      <i class="fa-solid fa-file-lines"></i>
+
+      Văn bản nhận diện
+
+    </h2>
+
+    <span id="counter">
+      0 ký tự
+    </span>
+
+  </div>
+
+
+  <textarea
+    id="txt"
+    maxlength="10000"
+    placeholder="Văn bản sau khi nhận diện sẽ xuất hiện ở đây... Bạn cũng có thể tự nhập hoặc chỉnh sửa."
+  ></textarea>
+
+
+  <div class="text-bottom">
+
+    <span class="counter">
+      Có thể chỉnh sửa trước khi đọc
+    </span>
+
+    <button
+      class="clear"
+      onclick="clearText()"
+    >
+
+      <i class="fa-solid fa-eraser"></i>
+
+      Xóa văn bản
+
+    </button>
+
+  </div>
+
+</section>
+
+
+<!-- VOICE -->
+
+<section class="card">
+
+  <div class="section-title">
+
+    <h2>
+
+      <i class="fa-solid fa-microphone-lines"></i>
+
+      Giọng đọc
+
+    </h2>
+
+    <span id="voiceStatus">
+      Đang tải...
+    </span>
+
+  </div>
+
+
+  <div
+    class="voice-grid"
+    id="voiceGrid"
+  ></div>
+
+</section>
+
+
+<!-- SETTINGS -->
+
+<section class="card">
+
+  <div class="section-title">
+
+    <h2>
+
+      <i class="fa-solid fa-sliders"></i>
+
+      Điều chỉnh giọng nói
+
+    </h2>
+
+  </div>
+
+
+  <div class="settings">
+
+
+    <!-- RATE -->
+
+    <div class="setting">
+
+      <label>
+
+        <i class="fa-solid fa-gauge-high"></i>
+
+        Tốc độ
+
+      </label>
+
+      <input
+        id="rate"
+        type="range"
+        min=".5"
+        max="2"
+        step=".1"
+        value="1"
+        oninput="updateSettings()"
+      >
+
+      <span
+        class="value"
+        id="rateV"
+      >
+        1.0×
+      </span>
+
+    </div>
+
+
+    <!-- PITCH -->
+
+    <div class="setting">
+
+      <label>
+
+        <i class="fa-solid fa-music"></i>
+
+        Âm vực
+
+      </label>
+
+      <input
+        id="pitch"
+        type="range"
+        min="0"
+        max="2"
+        step=".1"
+        value="1"
+        oninput="updateSettings()"
+      >
+
+      <span
+        class="value"
+        id="pitchV"
+      >
+        1.0
+      </span>
+
+    </div>
+
+
+    <!-- VOLUME -->
+
+    <div class="setting">
+
+      <label>
+
+        <i class="fa-solid fa-volume-high"></i>
+
+        Âm lượng
+
+      </label>
+
+      <input
+        id="volume"
+        type="range"
+        min="0"
+        max="1"
+        step=".05"
+        value="1"
+        oninput="updateSettings()"
+      >
+
+      <span
+        class="value"
+        id="volumeV"
+      >
+        100%
+      </span>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- PLAYER -->
+
+<section class="card">
+
+
+  <div
+    class="wave"
+    id="wave"
+  >
+
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+
+  </div>
+
+
+  <div class="actions">
+
+
+    <button
+      class="btn btn-main"
+      onclick="speak()"
+    >
+
+      <i
+        class="fa-solid fa-play"
+        id="playIcon"
+      ></i>
+
+      <span id="playText">
+        Phát văn bản
+      </span>
+
+    </button>
+
+
+    <button
+      class="btn"
+      onclick="pauseResume()"
+      title="Tạm dừng"
+    >
+
+      <i
+        class="fa-solid fa-pause"
+        id="pauseIcon"
+      ></i>
+
+    </button>
+
+
+    <button
+      class="btn"
+      onclick="stopSpeech()"
+      title="Dừng"
+    >
+
+      <i class="fa-solid fa-stop"></i>
+
+    </button>
+
+  </div>
+
+
+  <div class="status">
+
+    <span
+      class="dot"
+      id="dot"
+    ></span>
+
+    <span id="statusText">
+      Sẵn sàng
+    </span>
+
+  </div>
+
+</section>
+
+
+<div class="footer">
+
+  AI KHẢI TƯỜNG
+  •
+  OCR tiếng Việt
+  •
+  Text to Speech
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   BIẾN CHÍNH
+========================= */
+
+const synth =
+  window.speechSynthesis;
+
+let voices = [];
+
+let selectedVoice = null;
+
+let selectedFile = null;
+
+
+/* =========================
+   DOM
+========================= */
+
+const fileInput =
+  document.getElementById("file");
+
+const upload =
+  document.getElementById("upload");
+
+const preview =
+  document.getElementById("preview");
+
+const previewImg =
+  document.getElementById("previewImg");
+
+const ocrBtn =
+  document.getElementById("ocrBtn");
+
+const textarea =
+  document.getElementById("txt");
+
+
+/* =========================
+   CHỌN ẢNH
+========================= */
+
+fileInput.addEventListener(
+  "change",
+  function(){
+
+    if(
+      this.files &&
+      this.files[0]
+    ){
+
+      showImage(
+        this.files[0]
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   HIỂN THỊ ẢNH
+========================= */
+
+function showImage(file){
+
+  if(
+    !file.type.startsWith(
+      "image/"
+    )
+  ){
+
+    alert(
+      "Vui lòng chọn file ảnh."
+    );
+
+    return;
+
+  }
+
+
+  selectedFile = file;
+
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    function(e){
+
+      previewImg.src =
+        e.target.result;
+
+      upload.style.display =
+        "none";
+
+      preview.style.display =
+        "block";
+
+      ocrBtn.disabled =
+        false;
+
+    };
+
+
+  reader.readAsDataURL(file);
+
+}
+
+
+/* =========================
+   ĐỔI ẢNH
+========================= */
+
+function changeImage(){
+
+  fileInput.value = "";
+
+  fileInput.click();
+
+}
+
+
+/* =========================
+   XÓA ẢNH
+========================= */
+
+function removeImage(){
+
+  selectedFile = null;
+
+  preview.style.display =
+    "none";
+
+  upload.style.display =
+    "flex";
+
+  ocrBtn.disabled =
+    true;
+
+  fileInput.value = "";
+
+}
+
+
+/* =========================
+   KÉO THẢ ẢNH
+========================= */
+
+upload.addEventListener(
+  "dragover",
+  function(e){
+
+    e.preventDefault();
+
+    upload.classList.add(
+      "drag"
+    );
+
+  }
+);
+
+
+upload.addEventListener(
+  "dragleave",
+  function(){
+
+    upload.classList.remove(
+      "drag"
+    );
+
+  }
+);
+
+
+upload.addEventListener(
+  "drop",
+  function(e){
+
+    e.preventDefault();
+
+    upload.classList.remove(
+      "drag"
+    );
+
+    const file =
+      e.dataTransfer.files[0];
+
+    if(file){
+
+      showImage(file);
+
+    }
+
+  }
+);
+
+
+/* =========================
+   TIỆN ÍCH ẢNH
+========================= */
+
+function readFileAsDataURL(file){
+
+  return new Promise(
+    function(resolve, reject){
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        function(e){
+          resolve(e.target.result);
+        };
+
+      reader.onerror =
+        reject;
+
+      reader.readAsDataURL(file);
+
+    }
+  );
+
+}
+
+
+/* =========================
+   ADAPTIVE THRESHOLD
+   (xử lý ảnh thiếu sáng,
+   sáng không đều)
+========================= */
+
+function adaptiveThreshold(
+  gray, w, h, win, C
+){
+
+  const integral =
+    new Float64Array(w * h);
+
+  for(let y = 0; y < h; y++){
+
+    let rowSum = 0;
+
+    for(let x = 0; x < w; x++){
+
+      rowSum += gray[y * w + x];
+
+      integral[y * w + x] =
+        rowSum +
+        (y > 0 ? integral[(y - 1) * w + x] : 0);
+
+    }
+
+  }
+
+
+  const out =
+    new Uint8Array(w * h);
+
+  const half = win >> 1;
+
+
+  for(let y = 0; y < h; y++){
+
+    const y1 =
+      Math.max(0, y - half);
+
+    const y2 =
+      Math.min(h - 1, y + half);
+
+    const areaH =
+      y2 - y1 + 1;
+
+
+    for(let x = 0; x < w; x++){
+
+      const x1 =
+        Math.max(0, x - half);
+
+      const x2 =
+        Math.min(w - 1, x + half);
+
+      const count =
+        (x2 - x1 + 1) * areaH;
+
+
+      let sum =
+        integral[y2 * w + x2];
+
+
+      if(y1 > 0)
+        sum -= integral[(y1 - 1) * w + x2];
+
+
+      if(x1 > 0)
+        sum -= integral[y2 * w + (x1 - 1)];
+
+
+      if(y1 > 0 && x1 > 0)
+        sum += integral[(y1 - 1) * w + (x1 - 1)];
+
+
+      const mean =
+        sum / count;
+
+
+      out[y * w + x] =
+        gray[y * w + x] > mean - C
+        ? 255
+        : 0;
+
+    }
+
+  }
+
+
+  return out;
+
+}
+
+
+/* =========================
+   TIỀN XỬ LÝ ẢNH
+   - nâng độ phân giải
+   - grayscale
+   - tăng tương phản
+   - adaptive threshold
+========================= */
+
+function preprocessImage(
+  dataUrl
+){
+
+  return new Promise(
+    function(resolve){
+
+      const img =
+        new Image();
+
+
+      img.onload =
+        function(){
+
+          const maxDim =
+            Math.max(img.width, img.height);
+
+
+          /* Nhắm ~2200px:
+             ảnh nhỏ thì phóng to,
+             ảnh quá lớn thì thu nhỏ */
+
+          const TARGET = 2200;
+
+          let scale =
+            TARGET / maxDim;
+
+          scale =
+            Math.max(
+              1,
+              Math.min(2.5, scale)
+            );
+
+
+          const w =
+            Math.round(img.width * scale);
+
+          const h =
+            Math.round(img.height * scale);
+
+
+          const canvas =
+            document.createElement("canvas");
+
+          canvas.width = w;
+          canvas.height = h;
+
+
+          const ctx =
+            canvas.getContext(
+              "2d",
+              { willReadFrequently: true }
+            );
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+
+
+          ctx.drawImage(
+            img, 0, 0, w, h
+          );
+
+
+          const imageData =
+            ctx.getImageData(0, 0, w, h);
+
+          const d =
+            imageData.data;
+
+          const n =
+            w * h;
+
+
+          /* GRAYSCALE */
+
+          const gray =
+            new Float32Array(n);
+
+
+          for(
+            let i = 0, p = 0;
+            i < n;
+            i++, p += 4
+          ){
+
+            gray[i] =
+              0.299 * d[p] +
+              0.587 * d[p + 1] +
+              0.114 * d[p + 2];
+
+          }
+
+
+          /* TĂNG TƯƠNG PHẢN */
+
+          let mean = 0;
+
+          for(let i = 0; i < n; i++)
+            mean += gray[i];
+
+          mean /= n;
+
+
+          const CONTRAST = 1.5;
+
+
+          for(let i = 0; i < n; i++){
+
+            let v =
+              mean +
+              (gray[i] - mean) * CONTRAST;
+
+
+            gray[i] =
+              v < 0
+              ? 0
+              : (v > 255 ? 255 : v);
+
+          }
+
+
+          /* NHỊ PHÂN THÍCH ỨNG */
+
+          const bw =
+            adaptiveThreshold(
+              gray, w, h, 35, 10
+            );
+
+
+          for(
+            let i = 0, p = 0;
+            i < n;
+            i++, p += 4
+          ){
+
+            d[p] =
+            d[p + 1] =
+            d[p + 2] =
+              bw[i];
+
+          }
+
+
+          ctx.putImageData(
+            imageData, 0, 0
+          );
+
+
+          resolve(canvas);
+
+        };
+
+
+      img.src = dataUrl;
+
+    }
+  );
+
+}
+
+
+/* =========================
+   OCR
+========================= */
+
+async function runOCR(){
+
+  if(!selectedFile){
+
+    alert(
+      "Vui lòng chụp hoặc chọn ảnh trước."
+    );
+
+    return;
+
+  }
+
+
+  ocrBtn.disabled = true;
+
+
+  document.getElementById(
+    "progress"
+  ).style.display =
+    "block";
+
+
+  let processedCanvas = null;
+
+  let worker = null;
+
+
+  const logger =
+    function(info){
+
+      if(
+        !info ||
+        !info.status
+      )
+        return;
+
+
+      if(
+        info.status ===
+        "recognizing text"
+      ){
+
+        setProgress(
+          15 +
+          Math.round(
+            info.progress * 85
+          ),
+          "Đang nhận diện văn bản..."
+        );
+
+      }
+
+    };
+
+
+  try{
+
+    /* TIỀN XỬ LÝ ẢNH */
+
+    setProgress(
+      4,
+      "Đang xử lý ảnh (nâng độ phân giải, tương phản)..."
+    );
+
+
+    const dataUrl =
+      await readFileAsDataURL(
+        selectedFile
+      );
+
+
+    processedCanvas =
+      await preprocessImage(
+        dataUrl
+      );
+
+
+    /* MÔ HÌNH CHẤT LƯỢNG CAO */
+
+    setProgress(
+      8,
+      "Đang tải mô hình OCR tiếng Việt (chất lượng cao)..."
+    );
+
+
+    worker =
+      await Tesseract.createWorker(
+
+        "vie",
+
+        Tesseract.OEM.LSTM_ONLY,
+
+        {
+
+          /*
+            Bản "best_int":
+            chính xác hơn nhiều
+            so với bản fast mặc định
+          */
+
+          langPath:
+            "https://tessdata.projectnaptha.com/4.0.0_best_int",
+
+          gzip: true,
+
+          cacheMethod: "write",
+
+          logger: logger
+
+        }
+
+      );
+
+
+    await worker.setParameters({
+
+      /* Tự động phân đoạn
+         trang văn bản */
+
+      tessedit_pageseg_mode:
+        "3",
+
+      /* Giữ đúng khoảng
+         trắng giữa các từ */
+
+      preserve_interword_spaces:
+        "1",
+
+      user_defined_dpi:
+        "300"
+
+    });
+
+
+    const result =
+      await worker.recognize(
+        processedCanvas
+      );
+
+
+    finishOCR(
+      result.data
+    );
+
+  }
+
+  catch(error){
+
+    console.error(error);
+
+
+    /*
+      FALLBACK:
+      nếu tải bản "best" thất bại
+      thì thử lại bản nhẹ hơn
+    */
+
+    try{
+
+      if(worker){
+
+        try{
+          await worker.terminate();
+        }
+        catch(_){}
+
+        worker = null;
+
+      }
+
+
+      setProgress(
+        30,
+        "Đang thử lại với mô hình nhẹ..."
+      );
+
+
+      const result =
+        await Tesseract.recognize(
+
+          processedCanvas,
+
+          "vie",
+
+          {
+
+            logger:
+              function(info){
+
+                if(
+                  info &&
+                  info.status ===
+                  "recognizing text"
+                ){
+
+                  setProgress(
+
+                    30 +
+
+                    Math.round(
+                      info.progress * 70
+                    ),
+
+                    "Đang nhận diện văn bản..."
+
+                  );
+
+                }
+
+              }
+
+          }
+
+        );
+
+
+      finishOCR(
+        result.data
+      );
+
+    }
+
+    catch(error2){
+
+      console.error(error2);
+
+      setProgress(
+        0,
+        "Nhận diện thất bại"
+      );
+
+
+      alert(
+        "Không thể nhận diện ảnh. Hãy kiểm tra kết nối mạng và thử lại."
+      );
+
+    }
+
+  }
+
+  finally{
+
+    if(worker){
+
+      try{
+        await worker.terminate();
+      }
+      catch(_){}
+
+    }
+
+
+    setTimeout(
+
+      function(){
+
+        document.getElementById(
+          "progress"
+        ).style.display =
+          "none";
+
+      },
+
+      1200
+
+    );
+
+
+    ocrBtn.disabled = false;
+
+  }
+
+}
+
+
+/* =========================
+   KẾT QUẢ OCR
+   - lọc dòng kém
+     tin cậy
+========================= */
+
+function finishOCR(
+  data
+){
+
+  let text = "";
+
+
+  if(
+    data.lines &&
+    data.lines.length
+  ){
+
+    const MIN_CONF = 30;
+
+
+    text =
+
+      data.lines
+
+        .filter(
+          l =>
+            l.confidence >= MIN_CONF
+        )
+
+        .map(
+          l =>
+            l.text.replace(/\s+$/, "")
+        )
+
+        .join("\n")
+
+        .trim();
+
+  }
+
+
+  if(!text)
+    text =
+      (data.text || "").trim();
+
+
+  textarea.value =
+    text;
+
+
+  updateCounter();
+
+
+  const avg =
+    Math.round(
+      data.confidence || 0
+    );
+
+
+  document.getElementById(
+    "counter"
+  ).textContent =
+
+    text.length.toLocaleString(
+      "vi-VN"
+    ) +
+
+    " ký tự • Độ tin cậy " +
+
+    avg +
+
+    "%";
+
+
+  setProgress(
+    100,
+    "Hoàn tất nhận diện"
+  );
+
+
+  if(!text){
+
+    alert(
+      "Không nhận diện được văn bản. Hãy thử ảnh rõ hơn, đủ sáng và chụp thẳng."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   TRẠNG THÁI OCR
+========================= */
+
+function translateOCRStatus(
+  status
+){
+
+  const map = {
+
+    "loading tesseract core":
+      "Đang tải AI OCR...",
+
+    "initializing tesseract":
+      "Đang khởi tạo...",
+
+    "loading language traineddata":
+      "Đang tải ngôn ngữ tiếng Việt...",
+
+    "initializing api":
+      "Đang chuẩn bị nhận diện...",
+
+    "recognizing text":
+      "Đang nhận diện văn bản..."
+
+  };
+
+
+  return map[status] ||
+    status;
+
+}
+
+
+/* =========================
+   THANH TIẾN TRÌNH
+========================= */
+
+function setProgress(
+  percent,
+  text
+){
+
+  document.getElementById(
+    "progressBar"
+  ).style.width =
+    percent + "%";
+
+
+  document.getElementById(
+    "progressPercent"
+  ).textContent =
+    percent + "%";
+
+
+  document.getElementById(
+    "progressText"
+  ).textContent =
+    text;
+
+}
+
+
+/* =========================
+   ĐẾM KÝ TỰ
+========================= */
+
+textarea.addEventListener(
+  "input",
+  updateCounter
+);
+
+
+function updateCounter(){
+
+  const length =
+    textarea.value.length;
+
+
+  document.getElementById(
+    "counter"
+  ).textContent =
+    length.toLocaleString(
+      "vi-VN"
+    ) + " ký tự";
+
+}
+
+
+/* =========================
+   XÓA VĂN BẢN
+========================= */
+
+function clearText(){
+
+  textarea.value = "";
+
+  updateCounter();
+
+}
+
+
+/* =========================
+   LOAD GIỌNG ĐỌC
+========================= */
+
+function loadVoices(){
+
+  voices =
+    synth
+      .getVoices()
+      .filter(
+        v =>
+          v.lang &&
+          v.lang
+            .toLowerCase()
+            .startsWith("vi")
+      );
+
+
+  const grid =
+    document.getElementById(
+      "voiceGrid"
+    );
+
+
+  grid.innerHTML = "";
+
+
+  if(!voices.length){
+
+    grid.innerHTML = `
+
+      <div
+        style="
+          grid-column:1/-1;
+          padding:20px;
+          text-align:center;
+          color:#94a3b8;
+          font-size:12px;
+        "
+      >
+
+        Trình duyệt chưa cung cấp
+        giọng Tiếng Việt.
+
+        <br>
+
+        Hãy thử Microsoft Edge.
+
+      </div>
+
+    `;
+
+
+    document.getElementById(
+      "voiceStatus"
+    ).textContent =
+      "Không tìm thấy";
+
+
+    return;
+
+  }
+
+
+  /*
+    QUAN TRỌNG:
+
+    Dù thiết bị cung cấp giọng
+    tên là "Linh", giao diện
+    sẽ luôn hiển thị:
+
+    AI KHẢI TƯỜNG
+  */
+
+
+  document.getElementById(
+    "voiceStatus"
+  ).textContent =
+    "AI KHẢI TƯỜNG";
+
+
+  voices.forEach(
+    (voice,index)=>{
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "voice" +
+        (
+          index === 0
+          ?
+          " active"
+          :
+          ""
+        );
+
+
+      item.innerHTML = `
+
+        <div class="voice-top">
+
+          <div class="avatar">
+            K
+          </div>
+
+          <div>
+
+            <div class="voice-name">
+              AI KHẢI TƯỜNG
+            </div>
+
+            <div class="voice-lang">
+              ${voice.lang}
+            </div>
+
+          </div>
+
+        </div>
+
+      `;
+
+
+      item.onclick =
+        function(){
+
+          document
+            .querySelectorAll(
+              ".voice"
+            )
+            .forEach(
+              v =>
+                v.classList.remove(
+                  "active"
+                )
+            );
+
+
+          item.classList.add(
+            "active"
+          );
+
+
+          selectedVoice =
+            voice;
+
+        };
+
+
+      grid.appendChild(item);
+
+    }
+  );
+
+
+  selectedVoice =
+    voices[0];
+
+}
+
+
+/* =========================
+   LOAD VOICES
+========================= */
+
+loadVoices();
+
+
+if(
+  synth.onvoiceschanged !==
+  undefined
+){
+
+  synth.onvoiceschanged =
+    loadVoices;
+
+}
+
+
+/* =========================
+   ĐIỀU CHỈNH GIỌNG
+========================= */
+
+function updateSettings(){
+
+  const rate =
+    parseFloat(
+      document.getElementById(
+        "rate"
+      ).value
+    );
+
+
+  const pitch =
+    parseFloat(
+      document.getElementById(
+        "pitch"
+      ).value
+    );
+
+
+  const volume =
+    parseFloat(
+      document.getElementById(
+        "volume"
+      ).value
+    );
+
+
+  document.getElementById(
+    "rateV"
+  ).textContent =
+    rate.toFixed(1) +
+    "×";
+
+
+  document.getElementById(
+    "pitchV"
+  ).textContent =
+    pitch.toFixed(1);
+
+
+  document.getElementById(
+    "volumeV"
+  ).textContent =
+    Math.round(
+      volume * 100
+    ) + "%";
+
+}
+
+
+/* =========================
+   ĐỌC VĂN BẢN
+========================= */
+
+function speak(){
+
+  const text =
+    textarea.value.trim();
+
+
+  if(!text){
+
+    alert(
+      "Vui lòng nhập hoặc nhận diện văn bản trước."
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !(
+      "speechSynthesis"
+      in window
+    )
+  ){
+
+    alert(
+      "Trình duyệt không hỗ trợ đọc văn bản."
+    );
+
+    return;
+
+  }
+
+
+  synth.cancel();
+
+
+  const utterance =
+    new SpeechSynthesisUtterance(
+      text
+    );
+
+
+  if(selectedVoice){
+
+    utterance.voice =
+      selectedVoice;
+
+  }
+
+
+  utterance.lang =
+    "vi-VN";
+
+
+  utterance.rate =
+    parseFloat(
+      document.getElementById(
+        "rate"
+      ).value
+    );
+
+
+  utterance.pitch =
+    parseFloat(
+      document.getElementById(
+        "pitch"
+      ).value
+    );
+
+
+  utterance.volume =
+    parseFloat(
+      document.getElementById(
+        "volume"
+      ).value
+    );
+
+
+  utterance.onstart =
+    function(){
+
+      setPlaying(true);
+
+    };
+
+
+  utterance.onend =
+    function(){
+
+      setPlaying(false);
+
+    };
+
+
+  utterance.onerror =
+    function(){
+
+      setPlaying(false);
+
+    };
+
+
+  synth.speak(
+    utterance
+  );
+
+}
+
+
+/* =========================
+   TẠM DỪNG / TIẾP TỤC
+========================= */
+
+function pauseResume(){
+
+  if(!synth.speaking)
+    return;
+
+
+  if(synth.paused){
+
+    synth.resume();
+
+    setPlaying(true);
+
+    document.getElementById(
+      "pauseIcon"
+    ).className =
+      "fa-solid fa-pause";
+
+  }
+
+  else{
+
+    synth.pause();
+
+    setPlaying(false);
+
+    document.getElementById(
+      "statusText"
+    ).textContent =
+      "Đang tạm dừng";
+
+
+    document.getElementById(
+      "pauseIcon"
+    ).className =
+      "fa-solid fa-play";
+
+  }
+
+}
+
+
+/* =========================
+   DỪNG ĐỌC
+========================= */
+
+function stopSpeech(){
+
+  synth.cancel();
+
+  setPlaying(false);
+
+
+  document.getElementById(
+    "pauseIcon"
+  ).className =
+    "fa-solid fa-pause";
+
+
+  document.getElementById(
+    "playText"
+  ).textContent =
+    "Phát văn bản";
+
+}
+
+
+/* =========================
+   TRẠNG THÁI PHÁT
+========================= */
+
+function setPlaying(
+  playing
+){
+
+  const wave =
+    document.getElementById(
+      "wave"
+    );
+
+
+  const dot =
+    document.getElementById(
+      "dot"
+    );
+
+
+  const status =
+    document.getElementById(
+      "statusText"
+    );
+
+
+  const playIcon =
+    document.getElementById(
+      "playIcon"
+    );
+
+
+  if(playing){
+
+    wave.classList.add(
+      "playing"
+    );
+
+
+    dot.classList.add(
+      "playing"
+    );
+
+
+    status.textContent =
+      "AI KHẢI TƯỜNG đang đọc văn bản...";
+
+
+    playIcon.className =
+      "fa-solid fa-volume-high";
+
+
+    document.getElementById(
+      "playText"
+    ).textContent =
+      "Đang phát";
+
+  }
+
+  else{
+
+    wave.classList.remove(
+      "playing"
+    );
+
+
+    dot.classList.remove(
+      "playing"
+    );
+
+
+    status.textContent =
+      "Sẵn sàng";
+
+
+    playIcon.className =
+      "fa-solid fa-play";
+
+
+    document.getElementById(
+      "playText"
+    ).textContent =
+      "Phát văn bản";
+
+  }
+
+}
+
+
+/* =========================
+   KHỞI ĐỘNG
+========================= */
+
+updateCounter();
+
+updateSettings();
+
+</script>
+
+</body>
+</html>
